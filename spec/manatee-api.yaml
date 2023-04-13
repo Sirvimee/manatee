@@ -1,0 +1,159 @@
+openapi: 3.0.3
+info:
+  title: Manatee API
+  version: 1.0.0
+  description: |
+    Candidate application management API codenamed "Manatee" is a mockup of a real system,
+    where recruiters can view new applications and follow a process until successful onboarding.  
+
+servers:
+  - url: http://localhost:8080/
+    description: Local development server
+
+externalDocs:
+  url: https://swagger.io/specification/
+  description: Find more information about OAS3.0 standard.
+
+tags:
+  - name: Application
+    description: API for services related application management.
+
+paths:
+  /applications:
+    get:
+      operationId: getApplications
+      tags:
+        - Application
+      summary: Queries all applications.
+      description: Selects all applications stored in database and returns them as an array.
+      responses:
+        '200':
+          description: Successful query returns an array of applications.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Application'
+    post:
+      operationId: addApplication
+      tags:
+        - Application
+      summary: Submits new applications.
+      description: Submits a new applications and instantiates it with a new state.
+      requestBody:
+        description: A new application information.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Application'
+      responses:
+        '201':
+          description: Successfully submitted applications returns an instance with given id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+  /applications/{applicationId}:
+    patch:
+      operationId: rejectApplication
+      tags:
+        - Application
+      summary: Rejects an applications with given Id.
+      description: Find the applications and performs a state transition to rejected state.
+      parameters:
+        - $ref: '#/components/parameters/ApplicationId'
+      responses:
+        '202':
+          description: Application rejection was accepted and state transition was successful.
+  /applications/{applicationId}/interview:
+    put:
+      operationId: scheduleInterview
+      tags:
+        - Application
+      summary: Schedules an interview for an application.
+      description: Schedules an interview for the given application and updates its state to Interview.
+      parameters:
+        - $ref: '#/components/parameters/ApplicationId'
+      requestBody:
+        description: Application details with interview data.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Application'
+      responses:
+        '203':
+          description: Interview scheduled and application state updated to Interview.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+        '400':
+          description: Interview was not scheduled due to invalid request.
+
+components:
+  schemas:
+    Application:
+      type: object
+      required:
+        - candidate
+      properties:
+        id:
+          type: integer
+        applicationState:
+          $ref: '#/components/schemas/ApplicationState'
+        candidate:
+          $ref: '#/components/schemas/Candidate'
+        updatedOn:
+          type: string
+          format: date-time
+        interview:
+          $ref: '#/components/schemas/Interview'
+
+    Candidate:
+      type: object
+      required:
+        - firstName
+        - lastName
+      properties:
+        id:
+          type: integer
+        firstName:
+          type: string
+        lastName:
+          type: string
+
+    ApplicationState:
+      type: string
+      enum:
+        - New
+        - Interview
+        - Offer
+        - Pre-onboard
+        - Hired
+        - Rejected
+
+    Interview:
+      type: object
+      required:
+        - interviewer
+        - interviewTime
+      properties:
+        id:
+          type: integer
+        interviewer:
+          type: string
+          description: Name of the interviewer.
+        interviewTime:
+          type: string
+          format: date-time
+          description: Scheduled date and time of the interview.
+
+  parameters:
+    ApplicationId:
+      name: applicationId
+      in: path
+      description: ID of application to use
+      required: true
+      schema:
+        type: integer
